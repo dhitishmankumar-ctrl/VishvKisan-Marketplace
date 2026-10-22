@@ -1,0 +1,24 @@
+[CRITICAL SYSTEM DIRECTIVE: UI STABILITY HOOKS]
+- DO NOT alter, rewrite, or inject new global CSS styles.
+- DO NOT touch, reposition, or restyle any existing buttons, navigation layouts, alignments, or visual page backgrounds.
+- KEEP the existing design intact. Treat the current aesthetics as a read-only template.
+- FOCUS EXCLUSIVELY on injecting the underlying JavaScript/TypeScript state logic, backend data processing routes, and dual-role functional dashboard layers described below.
+
+Please implement the complete functional architecture for this agricultural marketplace with the following structural systems:
+
+1. DUAL-ROLE AUTHENTICATION & VIEWS
+- Implement a conditional routing/state layer based on the logged-in user's role.
+- CUSTOMER LOGIN VIEW: Connects to a standard buying e-commerce lifecycle. Needs a product grid, a functioning add-to-cart mechanism, order summary calculations, and a checkout submission interface.
+- FARMER LOGIN VIEW: Connects to a supplier inventory panel. Needs a listing creation form (product name, crop type, quantity, pricing field, and storage selection).
+
+2. REGIONAL LOGISTICS & STORAGE STATIONS
+- Create a data object or database collection for "Logistic Storage Points" (Warehouses/Cold Storage).
+- When a Farmer lists a crop, force them to select which local Logistic Storage Point the batch is physically located in.
+- Display this storage location on the item's details card so the Customer can see where it ships from.
+
+3. FARMER PRICE COMPRESSION ALGORITHM
+- In the Farmer Section, build a dynamic "Market Smart Pricing" panel.
+- This panel must take the farmer's entered asking price and run a basic mathematical compression function comparing it against simulated standard regional retail market caps.
+- Output a clear visual indicator to the farmer (e.g., "Your price is compressed by X% vs local retail markup due to direct-to-consumer routing") to help them gauge competitive placement.
+
+Inject this functionality behind the existing components by managing data states or backend routes. Do not reposition or re-align the current frontend layout.
