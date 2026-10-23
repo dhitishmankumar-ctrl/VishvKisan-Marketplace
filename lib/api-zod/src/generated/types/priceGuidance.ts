@@ -11,6 +11,7 @@ export interface PriceGuidance {
   unit: string;
   askingPrice: number;
   regionalRetailCap: number;
+  storageNodeFee: number;
   compressionPercent: number;
   comparison: string;
   sourceLabel: string;

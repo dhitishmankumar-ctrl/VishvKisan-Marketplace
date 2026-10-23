@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { GetMarketPriceGuidanceUnit } from './getMarketPriceGuidanceUnit';
 
 export type GetMarketPriceGuidanceParams = {
 cropType: string;
@@ -12,5 +13,6 @@ cropType: string;
  * @exclusiveMinimum 0
  */
 askingPrice: number;
-unit: string;
+unit: GetMarketPriceGuidanceUnit;
+storagePointId: string;
 };

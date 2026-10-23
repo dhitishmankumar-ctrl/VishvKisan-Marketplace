@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   CreateMarketplaceListingBody,
@@ -31,6 +31,7 @@ const defaultStoragePoints = [
     district: "Kamrup",
     state: "Assam",
     address: "Sualkuchi, Kamrup, Assam",
+    feePerQuintal: 280,
   },
   {
     id: "guwahati-cold-store",
@@ -39,6 +40,7 @@ const defaultStoragePoints = [
     district: "Kamrup Metropolitan",
     state: "Assam",
     address: "Lokhra Road, Guwahati, Assam",
+    feePerQuintal: 420,
   },
   {
     id: "nalbari-grain-warehouse",
@@ -47,6 +49,7 @@ const defaultStoragePoints = [
     district: "Nalbari",
     state: "Assam",
     address: "Nalbari Town, Assam",
+    feePerQuintal: 235,
   },
   {
     id: "barpeta-farm-hub",
@@ -55,6 +58,7 @@ const defaultStoragePoints = [
     district: "Barpeta",
     state: "Assam",
     address: "Barpeta Road, Assam",
+    feePerQuintal: 260,
   },
   {
     id: "hajo-village-aggregation",
@@ -63,6 +67,7 @@ const defaultStoragePoints = [
     district: "Kamrup",
     state: "Assam",
     address: "Hajo, Kamrup, Assam",
+    feePerQuintal: 250,
   },
 ];
 
@@ -87,16 +92,6 @@ const simulatedRetailCaps: Record<string, number> = {
   milk: 52,
 };
 
-const unitRetailCaps: Record<string, number> = {
-  kg: 100,
-  quintal: 9000,
-  bunch: 60,
-  litre: 100,
-  dozen: 120,
-  piece: 30,
-  bag: 2500,
-};
-
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -104,7 +99,10 @@ async function ensureStoragePoints(): Promise<void> {
   await db
     .insert(storagePointsTable)
     .values(defaultStoragePoints)
-    .onConflictDoNothing({ target: storagePointsTable.id });
+    .onConflictDoUpdate({
+      target: storagePointsTable.id,
+      set: { feePerQuintal: sql`excluded.fee_per_quintal` },
+    });
 }
 
 function normalizeListingInput(input: {
@@ -138,6 +136,7 @@ router.get("/marketplace/storage-points", async (_req, res): Promise<void> => {
       district: storagePointsTable.district,
       state: storagePointsTable.state,
       address: storagePointsTable.address,
+      feePerQuintal: storagePointsTable.feePerQuintal,
     })
     .from(storagePointsTable)
     .where(eq(storagePointsTable.active, true))
@@ -308,29 +307,63 @@ router.get(
     const cropType = parsed.data.cropType.trim();
     const unit = parsed.data.unit.trim().toLowerCase();
     const askingPrice = Number(parsed.data.askingPrice);
-    if (!cropType || !Number.isFinite(askingPrice) || askingPrice <= 0) {
-      res.status(400).json({ error: "Enter a crop and a positive asking price." });
+    const storagePointId = parsed.data.storagePointId;
+    if (
+      !cropType ||
+      !Number.isFinite(askingPrice) ||
+      askingPrice <= 0 ||
+      !["quintal", "ton"].includes(unit)
+    ) {
+      res.status(400).json({
+        error: "Enter a crop, a positive asking price, and a quintal or ton unit.",
+      });
       return;
     }
 
-    const retailCap =
-      simulatedRetailCaps[cropType.toLowerCase()] ?? unitRetailCaps[unit] ?? 100;
+    const [storagePoint] = await db
+      .select({
+        id: storagePointsTable.id,
+        feePerQuintal: storagePointsTable.feePerQuintal,
+      })
+      .from(storagePointsTable)
+      .where(
+        and(
+          eq(storagePointsTable.id, storagePointId),
+          eq(storagePointsTable.active, true),
+        ),
+      );
+    if (!storagePoint) {
+      res.status(400).json({
+        error: "Select an available logistic storage point to calculate its fee.",
+      });
+      return;
+    }
+
+    const unitMultiplier = unit === "ton" ? 10 : 1;
+    const regionalRetailCap =
+      (simulatedRetailCaps[cropType.toLowerCase()] ?? 100) *
+      100 *
+      unitMultiplier;
+    const storageNodeFee =
+      Math.round(storagePoint.feePerQuintal * unitMultiplier * 100) / 100;
+    const effectiveFarmerPrice = askingPrice + storageNodeFee;
     const compressionPercent =
-      Math.round(((retailCap - askingPrice) / retailCap) * 10000) / 100;
-    const absPercent = Math.abs(compressionPercent).toFixed(1);
+      Math.round(
+        (1 - effectiveFarmerPrice / regionalRetailCap) * 10000,
+      ) / 100;
     const comparison =
-      compressionPercent > 0
-        ? `Your price is compressed by ${absPercent}% vs the simulated local retail cap through direct-to-consumer routing.`
-        : compressionPercent < 0
-          ? `Your asking price is ${absPercent}% above the simulated local retail cap.`
-          : "Your asking price matches the simulated local retail cap.";
+      `Price compression efficiency: ${compressionPercent.toFixed(1)}%.` +
+      (compressionPercent < 0
+        ? " The farmer base price plus storage fee exceeds the simulated market cap."
+        : "");
 
     res.json(
       GetMarketPriceGuidanceResponse.parse({
         cropType,
         unit,
         askingPrice,
-        regionalRetailCap: retailCap,
+        regionalRetailCap,
+        storageNodeFee,
         compressionPercent,
         comparison,
         sourceLabel:

@@ -20,13 +20,18 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary List available regional storage stations
  */
+export const listStoragePointsResponseFeePerQuintalMin = 0;
+
+
+
 export const ListStoragePointsResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
   "district": zod.string(),
   "state": zod.string(),
-  "address": zod.string()
+  "address": zod.string(),
+  "feePerQuintal": zod.number().min(listStoragePointsResponseFeePerQuintalMin)
 })
 export const ListStoragePointsResponse = zod.array(ListStoragePointsResponseItem)
 
@@ -69,7 +74,7 @@ export const CreateMarketplaceListingBody = zod.object({
   "name": zod.string().min(1).max(createMarketplaceListingBodyNameMax),
   "cropType": zod.string().min(1).max(createMarketplaceListingBodyCropTypeMax),
   "price": zod.number().gt(createMarketplaceListingBodyPriceExclusiveMin),
-  "unit": zod.enum(['kg', 'quintal', 'bunch', 'litre', 'dozen', 'piece', 'bag']),
+  "unit": zod.enum(['quintal', 'ton']),
   "quantity": zod.number().gt(createMarketplaceListingBodyQuantityExclusiveMin),
   "storagePointId": zod.string(),
   "farmerName": zod.string().min(1).max(createMarketplaceListingBodyFarmerNameMax)
@@ -113,7 +118,7 @@ export const UpdateMarketplaceListingBody = zod.object({
   "name": zod.string().min(1).max(updateMarketplaceListingBodyNameMax),
   "cropType": zod.string().min(1).max(updateMarketplaceListingBodyCropTypeMax),
   "price": zod.number().gt(updateMarketplaceListingBodyPriceExclusiveMin),
-  "unit": zod.enum(['kg', 'quintal', 'bunch', 'litre', 'dozen', 'piece', 'bag']),
+  "unit": zod.enum(['quintal', 'ton']),
   "quantity": zod.number().gt(updateMarketplaceListingBodyQuantityExclusiveMin),
   "storagePointId": zod.string(),
   "farmerName": zod.string().min(1).max(updateMarketplaceListingBodyFarmerNameMax)
@@ -154,7 +159,8 @@ export const getMarketPriceGuidanceQueryAskingPriceExclusiveMin = 0;
 export const GetMarketPriceGuidanceQueryParams = zod.object({
   "cropType": zod.coerce.string(),
   "askingPrice": zod.coerce.number().gt(getMarketPriceGuidanceQueryAskingPriceExclusiveMin),
-  "unit": zod.coerce.string()
+  "unit": zod.enum(['quintal', 'ton']),
+  "storagePointId": zod.coerce.string()
 })
 
 export const GetMarketPriceGuidanceResponse = zod.object({
@@ -162,6 +168,7 @@ export const GetMarketPriceGuidanceResponse = zod.object({
   "unit": zod.string(),
   "askingPrice": zod.number(),
   "regionalRetailCap": zod.number(),
+  "storageNodeFee": zod.number(),
   "compressionPercent": zod.number(),
   "comparison": zod.string(),
   "sourceLabel": zod.string()

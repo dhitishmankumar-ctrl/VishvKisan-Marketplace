@@ -13,4 +13,6 @@ export interface StoragePoint {
   district: string;
   state: string;
   address: string;
+  /** @minimum 0 */
+  feePerQuintal: number;
 }

@@ -106,22 +106,23 @@
   }
   function updateFarmerStats() {
     const count = $('#farmerListingCount');
-    const stock = $('#farmerStockCount');
+    const storageHubs = $('#farmerStationCount');
     if (count) count.textContent = String(serverListings.length);
-    if (stock) stock.textContent = serverListings.reduce((sum, listing) =>
-      sum + Number(listing.availableQuantity ?? listing.quantity ?? 0), 0).toLocaleString('en-IN');
+    if (storageHubs) {
+      storageHubs.textContent = String(new Set(serverListings.map((listing) => listing.storagePointId)).size);
+    }
   }
   function renderFarmerListings() {
     updateFarmerStats();
     const grid = $('#farmerListingsGrid');
     if (!grid) return;
     if (!serverListings.length) {
-      grid.innerHTML = '<div class="panel" style="grid-column:1/-1;text-align:center;padding:24px"><div style="font-size:32px">🧺</div><strong>Your farm shop is ready</strong><p class="subtle">Add your first produce listing above to create a customer-ready product card.</p></div>';
+      grid.innerHTML = '<div class="panel" style="grid-column:1/-1;text-align:center;padding:24px"><div style="font-size:32px">🌾</div><strong>No crop batches yet</strong><p class="subtle">Create your first supplier batch above and assign it to a logistic storage point.</p></div>';
       return;
     }
     grid.innerHTML = serverListings.map((listing) => {
       const category = categoryFor(listing.cropType, listing.name);
-      return `<article class="farmer-listing-card"><div class="listing-art" aria-hidden="true">${productIcon(listing.name, category)}</div><div class="listing-body"><h4>${esc(listing.name)}</h4><p>${esc(category)} · Crop type: ${esc(listing.cropType)} · Storage station: ${esc(listing.storagePointName || 'Not listed')}</p><div class="customer-price farmer-listing-price">${money(listing.price)}<small style="font-size:11px;color:var(--muted)">/${esc(listing.unit)}</small></div><p style="margin-top:7px">${Number(listing.availableQuantity ?? listing.quantity)} ${esc(listing.unit)} available</p><div class="listing-actions"><button type="button" data-listing-edit="${esc(listing.id)}">Edit</button><button type="button" data-listing-remove="${esc(listing.id)}">Remove</button></div></div></article>`;
+      return `<article class="farmer-listing-card"><div class="listing-art" aria-hidden="true">${productIcon(listing.name, category)}</div><div class="listing-body"><h4>${esc(listing.name)}</h4><p>${esc(category)} · Crop type: ${esc(listing.cropType)} · Logistic Storage Point: ${esc(listing.storagePointName || 'Not assigned')}</p><div class="customer-price farmer-listing-price">${money(listing.price)}<small style="font-size:11px;color:var(--muted)">/${esc(listing.unit)}</small></div><p style="margin-top:7px">Total quantity: ${Number(listing.quantity)} ${esc(listing.unit)}</p><div class="listing-actions"><button type="button" data-listing-edit="${esc(listing.id)}">Edit</button><button type="button" data-listing-remove="${esc(listing.id)}">Remove</button></div></div></article>`;
     }).join('');
   }
   function renderCustomerProducts() {
@@ -160,27 +161,27 @@
       stationLoadError = '';
       if (!stationSelect) return;
       const previous = stationSelect.value;
-      stationSelect.innerHTML = '<option value="">Select an available storage station</option>'
-        + stations.map((station) => `<option value="${esc(station.id)}">${esc(station.name)} · ${esc(station.district)}, ${esc(station.state)}</option>`).join('');
+      stationSelect.innerHTML = '<option value="">Select a logistic storage point</option>'
+        + stations.map((station) => `<option value="${esc(station.id)}">${esc(station.name)} · ${esc(station.district)}, ${esc(station.state)} · ₹${Number(station.feePerQuintal).toLocaleString('en-IN')}/quintal storage fee</option>`).join('');
       if (stations.some((station) => station.id === previous)) stationSelect.value = previous;
       stationSelect.disabled = stations.length === 0;
       if (!stations.length) {
         stationSelect.innerHTML = '<option value="">No available storage stations</option>';
-        stationLoadError = 'No storage stations are currently available. Listings need an available station.';
-        status('#farmerMarketplaceStatus', 'No storage stations are currently available. Listings need an available station.');
+        stationLoadError = 'No logistic storage points are currently available. A point is required for every batch.';
+        status('#farmerMarketplaceStatus', stationLoadError);
       }
     } catch (error) {
       stationLoadError = `Could not load storage stations: ${error.message}. Retry by refreshing the page.`;
       if (stationSelect) {
-        stationSelect.innerHTML = '<option value="">Could not load stations</option>';
+        stationSelect.innerHTML = '<option value="">Could not load storage points</option>';
         stationSelect.disabled = true;
       }
       status('#farmerMarketplaceStatus', stationLoadError);
     }
   }
   async function loadListings() {
-    status('#farmerMarketplaceStatus', 'Loading shared farmer listings…');
-    status('#customerMarketplaceStatus', 'Loading shared farmer listings…');
+      status('#farmerMarketplaceStatus', 'Loading supplier inventory…');
+      status('#customerMarketplaceStatus', 'Loading shared farmer listings…');
     try {
       serverListings = await request('listings');
       status('#farmerMarketplaceStatus', stationLoadError);
@@ -235,9 +236,9 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     const payload = listingPayload();
-    if (!payload.name || !payload.storagePointId || !Number.isFinite(payload.price) || payload.price <= 0
+    if (!payload.name || !payload.cropType || !payload.storagePointId || !Number.isFinite(payload.price) || payload.price <= 0
       || !Number.isFinite(payload.quantity) || payload.quantity <= 0) {
-      status('#farmerMarketplaceStatus', 'Enter a name, a positive price and quantity, and select an available storage station.');
+      status('#farmerMarketplaceStatus', 'Enter a batch name, crop type, positive base price and total quantity, and select a logistic storage point.');
       return;
     }
     const wasEditing = Boolean(activeEditId);
@@ -297,7 +298,7 @@
     $('#farmerListingForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   function addToCart(product) {
-    if (!product || product.availableQuantity <= 0) return;
+    if (document.body.classList.contains('role-farmer') || !product || product.availableQuantity <= 0) return;
     const item = cart.find((entry) => String(entry.id) === String(product.id));
     if (item) {
       if (item.qty >= product.availableQuantity) {
@@ -312,6 +313,7 @@
     toast('Added to your demo cart');
   }
   function renderCart() {
+    if (document.body.classList.contains('role-farmer')) return;
     cart = cart.filter((item) => productById(item.id));
     const rows = cart.map((item) => {
       const product = productById(item.id);
@@ -324,7 +326,7 @@
     modal('Your cart', `${rows || '<p>Your cart is empty. Add fresh produce to get started.</p>'}<div style="display:flex;justify-content:space-between;padding:16px 0;font-size:18px"><strong>Current total</strong><strong>${money(total)}</strong></div><p class="subtle">Checkout submits a demo order only. No payment is processed.</p>${cart.length ? '<button class="btn green" style="width:100%" id="demoCheckout">Place demo order</button>' : ''}`);
   }
   async function checkout() {
-    if (orderPending || !cart.length) return;
+    if (document.body.classList.contains('role-farmer') || orderPending || !cart.length) return;
     const items = cart.map((item) => {
       const product = productById(item.id);
       return product && {
@@ -377,14 +379,19 @@
     const askingPrice = Number($('#listingPrice')?.value);
     const unit = $('#listingUnit')?.value || '';
     if (!cropType || !Number.isFinite(askingPrice) || askingPrice <= 0 || !unit) {
-      output.innerHTML = '<strong>Market Smart Pricing</strong><p class="subtle" style="margin:5px 0 0">Enter a crop, price and unit to compare with the simulated regional cap.</p>';
+      output.textContent = 'Select a crop, base price, unit, and logistic storage point to calculate price compression efficiency.';
+      return;
+    }
+    const storagePointId = stationSelect?.value || '';
+    if (!storagePointId) {
+      output.textContent = 'Select a logistic storage point to include its storage node fee in the calculation.';
       return;
     }
     if (pricingController) pricingController.abort();
     pricingController = new AbortController();
     const controller = pricingController;
-    output.innerHTML = '<strong>Market Smart Pricing</strong><p class="subtle" style="margin:5px 0 0">Checking simulated regional guidance…</p>';
-    const params = new URLSearchParams({ cropType, askingPrice: String(askingPrice), unit });
+    output.textContent = 'Calculating compression efficiency with the selected storage node fee…';
+    const params = new URLSearchParams({ cropType, askingPrice: String(askingPrice), unit, storagePointId });
     try {
       const response = await fetch(`/api/marketplace/price-guidance?${params}`, {
         credentials: 'same-origin', signal: controller.signal,
@@ -396,11 +403,11 @@
       }
       const guidance = await response.json();
       if (controller.signal.aborted) return;
-      const below = Number(guidance.askingPrice) <= Number(guidance.regionalRetailCap);
-      output.innerHTML = `<strong>Market Smart Pricing</strong><p style="margin:5px 0 0"><strong>${money(guidance.askingPrice)}/${esc(guidance.unit)}</strong> · Simulated regional cap: <strong>${money(guidance.regionalRetailCap)}/${esc(guidance.unit)}</strong></p><p class="subtle" style="margin:4px 0 0">${esc(guidance.comparison)} · Source: ${esc(guidance.sourceLabel)}</p>`;
+      output.textContent = `${guidance.comparison} Formula: (1 − (${money(guidance.askingPrice)} base + ${money(guidance.storageNodeFee)} storage fee) ÷ ${money(guidance.regionalRetailCap)} simulated market cap) × 100. ${guidance.sourceLabel}`;
     } catch (error) {
       if (error.name !== 'AbortError') {
-        output.innerHTML = `<strong>Market Smart Pricing</strong><p class="subtle" role="alert" style="margin:5px 0 0">Price guidance unavailable: ${esc(error.message)}. Cap and source will not be shown until the service responds.</p>`;
+        output.textContent = `Price guidance unavailable: ${error.message}. No estimate is shown until the service responds.`;
+        output.setAttribute('role', 'alert');
       }
     }
   }
@@ -490,6 +497,7 @@
   $('#listingCategory')?.addEventListener('change', schedulePricing);
   $('#listingPrice')?.addEventListener('input', schedulePricing);
   $('#listingUnit')?.addEventListener('change', schedulePricing);
+  $('#listingLocation')?.addEventListener('change', schedulePricing);
   $('#customerProductSearch')?.addEventListener('input', renderCustomerProducts);
   $('#customerLocation')?.addEventListener('input', renderCustomerProducts);
   $('#customerMarketTabs')?.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {

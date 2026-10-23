@@ -1,6 +1,6 @@
-# [Project name]
+# VishvKisan Marketplace
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+VishvKisan connects farmers and customers, with a supplier portal for crop batches, regional logistics hubs, and illustrative price-compression guidance.
 
 ## Run & Operate
 
@@ -10,6 +10,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Web preview: `pnpm --filter @workspace/vishvkisan run dev`
 
 ## Stack
 
@@ -22,23 +23,31 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/vishvkisan/index.html` — original marketplace page and visual shell
+- `artifacts/vishvkisan/marketplace.js` — shared listing, storage point, supplier form, and price guidance behavior
+- `artifacts/api-server/src/routes/marketplace.ts` — marketplace endpoints and illustrative pricing calculation
+- `lib/api-spec/openapi.yaml` — API contract source of truth
+- `lib/db/src/schema/marketplace.ts` — storage point, listing, and demo-order schema
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Farmer inventory and logistics assignments are stored in PostgreSQL and shared with the customer catalog.
+- Storage fees are configured per quintal; the price guide scales them for ton-based listings.
+- The market caps and OTP/login flow are demonstrations, not a live market feed or real authentication.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Farmers enter a B2B supplier dashboard to create crop batches, select a logistic storage point, track listings, and see price compression after storage fees. Customers have a separate local-produce catalog and demo order flow.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Preserve the existing visual shell: do not change global backgrounds, fonts, button alignments, or other styling.
+- Keep the consumer shopping cart out of the Farmer Login experience.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Rerun API code generation after changing `lib/api-spec/openapi.yaml`.
+- Demo login does not verify identity or listing ownership; do not treat this prototype as production-secure.
 
 ## Pointers
 

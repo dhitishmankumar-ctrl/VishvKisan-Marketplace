@@ -142,6 +142,12 @@ paths:
           required: true
           schema:
             type: string
+            enum: [quintal, ton]
+        - name: storagePointId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Simulated price comparison
@@ -203,7 +209,10 @@ components:
           type: string
         address:
           type: string
-      required: [id, name, type, district, state, address]
+        feePerQuintal:
+          type: number
+          minimum: 0
+      required: [id, name, type, district, state, address, feePerQuintal]
     MarketplaceListing:
       type: object
       properties:
@@ -258,7 +267,7 @@ components:
           exclusiveMinimum: 0
         unit:
           type: string
-          enum: [kg, quintal, bunch, litre, dozen, piece, bag]
+          enum: [quintal, ton]
         quantity:
           type: number
           exclusiveMinimum: 0
@@ -287,6 +296,8 @@ components:
           type: number
         regionalRetailCap:
           type: number
+        storageNodeFee:
+          type: number
         compressionPercent:
           type: number
         comparison:
@@ -298,6 +309,7 @@ components:
         - unit
         - askingPrice
         - regionalRetailCap
+        - storageNodeFee
         - compressionPercent
         - comparison
         - sourceLabel

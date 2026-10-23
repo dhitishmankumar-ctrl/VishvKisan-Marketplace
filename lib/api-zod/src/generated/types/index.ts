@@ -11,6 +11,7 @@ export * from './demoOrder';
 export * from './demoOrderInput';
 export * from './demoOrderLine';
 export * from './getMarketPriceGuidanceParams';
+export * from './getMarketPriceGuidanceUnit';
 export * from './healthStatus';
 export * from './marketplaceListing';
 export * from './marketplaceListingInput';

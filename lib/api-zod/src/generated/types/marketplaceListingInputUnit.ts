@@ -10,11 +10,6 @@ export type MarketplaceListingInputUnit = typeof MarketplaceListingInputUnit[key
 
 
 export const MarketplaceListingInputUnit = {
-  kg: 'kg',
   quintal: 'quintal',
-  bunch: 'bunch',
-  litre: 'litre',
-  dozen: 'dozen',
-  piece: 'piece',
-  bag: 'bag',
+  ton: 'ton',
 } as const;

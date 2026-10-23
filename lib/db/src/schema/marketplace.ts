@@ -18,6 +18,11 @@ export const storagePointsTable = pgTable("storage_points", {
   district: text("district").notNull(),
   state: text("state").notNull(),
   address: text("address").notNull(),
+  feePerQuintal: numeric("fee_per_quintal", {
+    precision: 12,
+    scale: 2,
+    mode: "number",
+  }).notNull().default(0),
   active: boolean("active").notNull().default(true),
 });
 

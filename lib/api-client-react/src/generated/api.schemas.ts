@@ -20,6 +20,8 @@ export interface StoragePoint {
   district: string;
   state: string;
   address: string;
+  /** @minimum 0 */
+  feePerQuintal: number;
 }
 
 export interface MarketplaceListing {
@@ -40,13 +42,8 @@ export type MarketplaceListingInputUnit = typeof MarketplaceListingInputUnit[key
 
 
 export const MarketplaceListingInputUnit = {
-  kg: 'kg',
   quintal: 'quintal',
-  bunch: 'bunch',
-  litre: 'litre',
-  dozen: 'dozen',
-  piece: 'piece',
-  bag: 'bag',
+  ton: 'ton',
 } as const;
 
 export interface MarketplaceListingInput {
@@ -78,6 +75,7 @@ export interface PriceGuidance {
   unit: string;
   askingPrice: number;
   regionalRetailCap: number;
+  storageNodeFee: number;
   compressionPercent: number;
   comparison: string;
   sourceLabel: string;
@@ -115,6 +113,15 @@ cropType: string;
  * @exclusiveMinimum 0
  */
 askingPrice: number;
-unit: string;
+unit: GetMarketPriceGuidanceUnit;
+storagePointId: string;
 };
+
+export type GetMarketPriceGuidanceUnit = typeof GetMarketPriceGuidanceUnit[keyof typeof GetMarketPriceGuidanceUnit];
+
+
+export const GetMarketPriceGuidanceUnit = {
+  quintal: 'quintal',
+  ton: 'ton',
+} as const;
 
